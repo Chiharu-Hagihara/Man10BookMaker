@@ -1,15 +1,13 @@
 package red.man10
 
 import com.github.syari.spigot.api.command.command
+import com.sk89q.worldguard.bukkit.WorldGuardPlugin
 import org.bukkit.Bukkit
-import org.bukkit.command.Command
+import org.bukkit.ChatColor
+import org.bukkit.Location
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
-import com.sk89q.worldguard.bukkit.WorldGuardPlugin
-import com.sk89q.worldguard.protection.managers.RegionManager
-import org.bukkit.ChatColor
-import org.bukkit.Location
 import java.util.*
 
 enum class GameStatus(val rawValue :Int)  {
@@ -46,7 +44,7 @@ class BookMakerPlugin: JavaPlugin() {
 
         vault = VaultManager(this)
 
-        worldguard = WGBukkit.getPlugin()
+        worldguard = WorldGuardPlugin.inst()
 
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mb.")
 
