@@ -1,8 +1,11 @@
 package red.man10
 
+import com.github.syari.spigot.api.config.config
+import com.github.syari.spigot.api.config.type.ConfigDataType
+import net.md_5.bungee.api.ChatColor
 import org.bukkit.Bukkit
+import org.bukkit.Location
 import org.bukkit.command.CommandSender
-import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.entity.Player
 
 class BookMakerConfigManager {
@@ -16,30 +19,35 @@ class BookMakerConfigManager {
         return BookMakerConfigManager()
     }
 
-    fun loadConfig(sender: CommandSender?){
-        pl!!.saveDefaultConfig()
-        pl!!.reloadConfig()
-        pl!!.saveDefaultConfig()
-        val config = pl!!.config
+    fun loadSpawn(sender: CommandSender) {
 
-        if (!config.getKeys(true).isEmpty()) {
-            Bukkit.broadcastMessage(config.getKeys(false).toString())
+        pl?.config(sender, "spawn.yml") {
 
-            if (sender != null) {
-                pl!!.gameManager.setUpGames(config, (sender as Player))
-                sender.sendMessage(pl!!.prefix + "config.ymlのゲームが読み込まれました。")
-            } else {
-                pl!!.gameManager.setUpGames(config, null)
-                print(pl!!.prefix + "config.ymlのゲームが読み込まれました。")
+            val world = get("spawn.world", ConfigDataType.String)!!
+
+            val x = get("spawn.x", ConfigDataType.Double)!!
+
+            val y = get("spawn.x", ConfigDataType.Double)!!
+
+            val z = get("spawn.x", ConfigDataType.Double)!!
+
+            pl?.spawn = Location(Bukkit.getWorld(world), x, y, z)
+
+        }
+
+    }
+
+    fun loadConfig(sender: CommandSender){
+
+        pl?.config(sender, "config.yml") {
+
+            if (config.getKeys(true).isNullOrEmpty()) {
+                sender.sendMessage("${pl?.prefix}${ChatColor.RED}config.ymlにゲームがありません！")
+                return@config
             }
 
-        } else {
-
-            if (sender != null) {
-                sender.sendMessage(pl!!.prefix + "config.ymlにゲームがありません！")
-            } else {
-                print(pl!!.prefix + "config.ymlにゲームがありません！")
-            }
+            pl!!.gameManager.setUpGames(config, (sender as Player))
+            sender.sendMessage(pl!!.prefix + "config.ymlのゲームが読み込まれました。")
 
         }
     }
