@@ -1,14 +1,15 @@
 package red.man10
 
+import com.github.syari.spigot.api.command.command
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin
-import com.sk89q.worldguard.bukkit.WGBukkit
-import com.sk89q.worldguard.bukkit.RegionContainer
 import com.sk89q.worldguard.protection.managers.RegionManager
+import org.bukkit.ChatColor
+import org.bukkit.Location
 import java.util.*
 
 enum class GameStatus(val rawValue :Int)  {
@@ -37,6 +38,8 @@ class BookMakerPlugin: JavaPlugin() {
 
     var freezedPlayer = mutableListOf<UUID>()
 
+    var spawn: Location? = null
+
     override fun onEnable() {
         logger.info("Man10BookMaker Enabled")
         server.pluginManager.registerEvents(listener, this)
@@ -45,7 +48,7 @@ class BookMakerPlugin: JavaPlugin() {
 
         worldguard = WGBukkit.getPlugin()
 
-        configManager.loadConfig(null)
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mb.")
 
         sidebar = BookMakerSidebar().returnSidebar(this)
         data = BookMakerData().returnData(this)
@@ -60,185 +63,266 @@ class BookMakerPlugin: JavaPlugin() {
         logger.info("Man10BookMaker Disabled")
     }
 
-    override fun onCommand(sender: CommandSender, cmd: Command, label: String, args: Array<String>): Boolean {
-        if (sender is Player) {
-            if (args.isEmpty()) {
-                if (sender.hasPermission("mp.play")) {
-                    if (isLocked == false) {
-                        gui.openTopMenu(sender)
-                    } else {
-                        sender.sendMessage(prefix + "ブックメーカーは現在OFFになっています。")
-                    }
-                } else {
-                    sender.sendMessage("権限がありません。")
-                }
-            } else {
-                if (args[0] == "view") {
-                    if (gameManager.runningGames[args[1]] == null) {
-                        sender.sendMessage(prefix + "ゲームが存在しません。")
-                        return true
-                    } else {
-                        gameManager.viewTeleport(args[1], sender)
-                        return true
-                    }
-                }
-                if (args[0] == "return") {
-                    if (sender.world.name == "bookmaker") {
-                        if (sender.hasPermission("mb.view")) {
-                            sender.performCommand("spawn")
-                            return true
-                        } else {
-                            sender.sendMessage(prefix + "権限がありません。")
-                            return true
-                        }
-                    } else {
-                        sender.sendMessage(prefix + "あなたは観戦していません。")
-                        return true
-                    }
+    fun registerCommand() {
+
+        this.command("mb") {
+
+            execute {
+
+                if (sender !is Player) {
+                    sender.sendMessage("${prefix}${ChatColor.RED}コマンドはプレイヤー以外から実行できません。")
+                    return@execute
                 }
 
-                if (args[0] == "open" ){
-                    if (isLocked == false) {
-                        if (args.size == 2) {
-                            gameManager.openNewGame(args[1], sender)
-                            return true
-                        } else {
-                            sender.sendMessage(prefix + "コマンドの使用方法が間違っています。/mb help")
-                            return true
-                        }
-                    } else {
-                        sender.sendMessage(prefix + "ブックメーカーは現在OFFになっています。")
+                val player = sender as Player
+
+                if (args.isNullOrEmpty()) {
+
+                    if (!sender.hasPermission("mp.play")) {
+                        sender.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                        return@execute
                     }
+
+                    if (isLocked) {
+                        sender.sendMessage("${prefix}${ChatColor.RED}ブックメーカーは現在OFFになっています。")
+                        return@execute
+                    }
+
+                    gui.openTopMenu(player)
+
+                    return@execute
                 }
-                if (args[0] == "help") {
-                    showHelp(sender)
-                    return true
-                }
-                if (sender.hasPermission("mb.op")) {
-                    when (args[0]) {
-                    //OPコマンド
-                        "reload" -> {
-                            configManager.loadConfig(sender)
-                        }
-                        "list" -> {
-                            sender.sendMessage(prefix + "§6現在" + gameManager.loadedGames.size + "個のゲームがロードされています。")
-                            for (item in gameManager.loadedGames) {
-                                sender.sendMessage(prefix + item.key + " (" + item.value.gameName + ")")
-                            }
-                        }
-                        "info" -> {
-                            if (args.size == 2) {
-                                if (gameManager.loadedGames[args[1]] == null) {
-                                    sender.sendMessage(prefix + "指定されたゲームは存在しません。")
-                                } else {
-                                    //FLAG
-                                    var checkingGame: Game = gameManager.loadedGames[args[1]]!!
-                                    sender.sendMessage(prefix + "§6" + args[1] + "のデーター")
-                                    sender.sendMessage(prefix + "§7ゲーム名: " + checkingGame.gameName)
-                                    sender.sendMessage(prefix + "§7GUI表示アイテム: " + checkingGame.item.toString())
-                                    sender.sendMessage(prefix + "§7プレイヤー人数: " + checkingGame.playerNumber)
-                                    sender.sendMessage(prefix + "§7参加費: " + checkingGame.joinFee)
-                                    sender.sendMessage(prefix + "§7税率: " + checkingGame.tax.toString())
-                                    sender.sendMessage(prefix + "§7賞金率: " + checkingGame.prize.toString())
-                                    sender.sendMessage(prefix + "§7ステータス: " + checkingGame.status.toString())
-                                    sender.sendMessage(prefix + "§7参加登録者一覧: " + checkingGame.candidates.toString())
-                                    sender.sendMessage(prefix + "§7ベット一覧: " + checkingGame.players.toString())
-                                }
-                            } else {
-                                sender.sendMessage(prefix + "コマンドの使用方法が間違っています。/mb help")
-                            }
-                        }
-                        "push" -> {
-                            if (args.size == 2) {
-                                gameManager.pushPhase(args[1], sender)
-                            } else {
-                                sender.sendMessage(prefix + "コマンドの使用方法が間違っています。/mb help")
-                            }
-                        }
-                        "end" -> {
-                            if (args.size == 3) {
-                                if (gameManager.runningGames[args[1]] != null) {
-                                    if (Bukkit.getPlayer(args[2]) != null) {
-                                        gameManager.endGame(args[1], Bukkit.getPlayer(args[2]).uniqueId)
-                                    } else {
-                                        if (gameManager.UUIDMap.keys.contains(gameManager.runningGames[args[1]]!!.players.keys.toList()[0])) {
-                                            if (args[2].toIntOrNull() == null) {
-                                                sender.sendMessage(prefix + "§4§lERROR: §f§l選択肢の番号を入力してください。")
-                                            } else {
-                                                if (args[2].toInt() == 1 || args[2].toInt() == 2) {
-                                                    gameManager.endGame(args[1], gameManager.runningGames[args[1]]!!.players.keys.toList()[args[2].toInt() - 1])
-                                                }
-                                            }
-                                        } else {
-                                            sender.sendMessage(prefix + "§4§lERROR: §f§lプレイヤーが存在しません。")
-                                        }
-                                    }
-                                } else {
-                                    sender.sendMessage(prefix + "§4§lERROR: §f§l指定されたゲームが存在しません。")
-                                }
-                            } else {
-                                sender.sendMessage(prefix + "コマンドの使用方法が間違っています。/mb help")
-                            }
+
+                when (args[0]) {
+
+                    "help" -> {
+                        showHelp(player)
+                        return@execute
+                    }
+
+                    "view" -> {
+                        if (!player.hasPermission("mb.view")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
                         }
 
-                        "forcestop" -> {
-                            if (args.size == 2) {
-                                if (gameManager.runningGames[args[1]] != null) {
-                                    Bukkit.broadcastMessage(prefix + "§l運営によって§6§l「" + gameManager.runningGames[args[1]]!!.gameName + "」§f§lが停止されました。")
-                                    gameManager.stopGame(args[1])
-                                } else {
-                                    sender.sendMessage(prefix + "§4§lERROR: §f§l指定されたゲームは存在しません")
-                                }
-                            } else {
-                                sender.sendMessage(prefix + "コマンドの使用方法が間違っています。/mb help")
-                            }
-                        }
-                        "setfighterspawn" -> {
-                            if (args.size == 2) {
-                                if (gameManager.loadedGames[args[1]] != null) {
-                                    gameManager.setFighterSpawnPoint(args[1], sender)
-                                }
-                            }
-                        }
-                        "setviewerspawn" -> {
-                            if (args.size == 2) {
-                                if (gameManager.loadedGames[args[1]] != null) {
-                                    gameManager.setViewerSpawnPoint(args[1], sender)
-                                }
-                            }
-                        }
-                        "off" -> {
-                            isLocked = true
-                            sender.sendMessage(prefix + "OFFにしました。")
-                        }
-                        "on" -> {
-                            isLocked = false
-                            sender.sendMessage(prefix + "ONにしました。")
+                        if (args.size != 1) {
+                            player.sendMessage("${prefix}${ChatColor.RED}引数が誤っています。")
+                            return@execute
                         }
 
-                        "ask" -> {
-                            if (args.size == 5) {
-                                if (gameManager.loadedGames[args[1]] == null && gameManager.runningGames[args[1]] == null) {
-                                    gameManager.openNewQ(args[1], args[2], args[3], args[4])
-                                } else {
-                                    sender.sendMessage(prefix + "ゲームがすでに存在します。")
-                                }
-                            } else {
-                                sender.sendMessage(prefix + "コマンドの使用方法が間違っています。/mb help")
-                            }
+                        if (gameManager.runningGames[args[1]] == null) {
+                            player.sendMessage("${prefix}${ChatColor.RED}ゲームが存在しません。")
+                            return@execute
                         }
-                        else -> {
-                            sender.sendMessage(prefix + "コマンドの使用方法が間違っています。/mb help")
+
+                        gameManager.viewTeleport(args[1], player)
+                    }
+
+                    "return" -> {
+
+                        if (!player.hasPermission("mb.view")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
+                        }
+
+                        if (player.world.name != "bookmaker") {
+                            player.sendMessage("${prefix}${ChatColor.RED}あなたは観戦していません。")
+                            return@execute
+                        }
+
+                        player.teleport(Location(Bukkit.getWorld("bookmaker"), 0.0, 100.0, 0.0))
+
+                    }
+
+                    "open" -> {
+
+                        if (isLocked) {
+                            player.sendMessage("${prefix}${ChatColor.RED}ブックメーカーは現在OFFになっています。")
+                            return@execute
+                        }
+
+                        if (args.size != 2) {
+                            player.sendMessage("${prefix}${ChatColor.RED}引数が誤っています。")
+                            return@execute
+                        }
+
+                        gameManager.openNewGame(args[1], player)
+
+                        return@execute
+
+                    }
+
+                    "reload" -> {
+
+                        if (!player.hasPermission("mb.op")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
+                        }
+
+                        configManager.loadSpawn(player)
+                        configManager.loadConfig(player)
+
+                        return@execute
+
+                    }
+
+                    "list" -> {
+
+                        if (!player.hasPermission("mb.op")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
+                        }
+
+                        player.sendMessage("${prefix}${ChatColor.GOLD}現在${gameManager.loadedGames.size}個のゲームがロードされています。")
+                        for (item in gameManager.loadedGames) {
+                            player.sendMessage(prefix + item.key + " (" + item.value.gameName + ")")
+                        }
+
+                    }
+
+                    "info" -> {
+
+                        if (!player.hasPermission("mb.op")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
+                        }
+
+                        if (args.size != 2) {
+                            player.sendMessage("${prefix}${ChatColor.RED}引数が間違っています。")
+                            return@execute
+                        }
+
+                        if (gameManager.loadedGames[args[1]] == null) {
+                            player.sendMessage("${prefix}${ChatColor.RED}指定されたゲームは存在しません。")
+                            return@execute
+                        }
+
+                        //FLAG
+                        var checkingGame: Game = gameManager.loadedGames[args[1]]!!
+                        player.sendMessage("${prefix}${ChatColor.GOLD}${args[1]}のデータ")
+                        player.sendMessage("${prefix}${ChatColor.GRAY}ゲーム名: ${checkingGame.gameName}")
+                        player.sendMessage("${prefix}${ChatColor.GRAY}GUI表示アイテム: ${checkingGame.item}")
+                        player.sendMessage("${prefix}${ChatColor.GRAY}プレイヤー人数: ${checkingGame.playerNumber}")
+                        player.sendMessage("${prefix}${ChatColor.GRAY}参加費: ${checkingGame.joinFee}")
+                        player.sendMessage("${prefix}${ChatColor.GRAY}税率: ${checkingGame.tax}")
+                        player.sendMessage("${prefix}${ChatColor.GRAY}賞金率: ${checkingGame.prize}")
+                        player.sendMessage("${prefix}${ChatColor.GRAY}ステータス: ${checkingGame.status}")
+                        player.sendMessage("${prefix}${ChatColor.GRAY}参加登録者一覧: ${checkingGame.candidates}")
+                        player.sendMessage("${prefix}${ChatColor.GRAY}ベット一覧: ${checkingGame.players}")
+
+                    }
+
+                    "push" -> {
+
+                        if (args.size != 2) {
+                            player.sendMessage("${prefix}${ChatColor.RED}引数が間違っています。")
+                            return@execute
+                        }
+
+                        gameManager.pushPhase(args[1], player)
+
+                    }
+
+                    "end" -> {
+                        if (args.size != 3) {
+                            player.sendMessage("${prefix}${ChatColor.RED}引数が間違っています。")
+                            return@execute
+                        }
+
+                        if (gameManager.runningGames[args[1]] == null) {
+                            player.sendMessage("${prefix}${ChatColor.RED}指定されたゲームが存在しません。")
+                            return@execute
                         }
                     }
-                } else {
-                    sender.sendMessage(prefix + "権限がありません。")
+
+                    "forcestop" -> {
+                        if (!gameManager.UUIDMap.keys.contains(gameManager.runningGames[args[1]]!!.players.keys.toList()[0])) {
+                            player.sendMessage("${prefix}${ChatColor.RED}プレイヤーが存在しません。")
+                            return@execute
+                        }
+
+                        if (args[2].toIntOrNull() != null) {
+                            sender.sendMessage("${prefix}${ChatColor.RED}選択肢の番号を入力してください。")
+                            return@execute
+                        }
+
+                        if (args[2].toInt() == 1 || args[2].toInt() == 2) {
+                            gameManager.endGame(args[1], gameManager.runningGames[args[1]]!!.players.keys.toList()[args[2].toInt() - 1])
+                        }
+
+                        return@execute
+
+                    }
+
+                    "setfighterspawn" -> {
+
+                        if (args.size != 2) {
+                            player.sendMessage("${prefix}${ChatColor.RED}引数が間違っています。")
+                            return@execute
+                        }
+
+                        if (gameManager.loadedGames[args[1]] != null) {
+                            gameManager.setFighterSpawnPoint(args[1], player)
+                        }
+
+                        return@execute
+
+                    }
+
+                    "setviewerspawn" -> {
+
+                        if (args.size != 2) {
+                            player.sendMessage("${prefix}${ChatColor.RED}引数が間違っています。")
+                            return@execute
+                        }
+
+                        if (gameManager.loadedGames[args[1]] != null) {
+                            gameManager.setViewerSpawnPoint(args[1], player)
+                        }
+
+                        return@execute
+
+                    }
+
+                    "off" -> {
+
+                        isLocked = true
+                        player.sendMessage("${prefix}OFFにしました。")
+
+                        return@execute
+
+                    }
+                    "on" -> {
+
+                        isLocked = false
+                        player.sendMessage("${prefix}ONにしました。")
+
+                        return@execute
+
+                    }
+
+                    "ask" -> {
+
+                        if (args.size != 5) {
+                            player.sendMessage("${prefix}${ChatColor.RED}引数が間違っています。")
+                            return@execute
+                        }
+
+                        if (gameManager.loadedGames[args[1]] == null && gameManager.runningGames[args[1]] != null) {
+                            player.sendMessage("${prefix}${ChatColor.RED}ゲームがすでに存在します。")
+                            return@execute
+                        }
+                            gameManager.openNewQ(args[1], args[2], args[3], args[4])
+
+                    }
+
                 }
+
             }
-        } else {
-            sender.sendMessage(prefix + "コンソールからコマンドは実行できません。")
+
         }
-        return true
+
     }
 
     fun showHelp(sender: CommandSender) {
