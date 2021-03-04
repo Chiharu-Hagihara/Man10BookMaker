@@ -46,10 +46,10 @@ class BookMakerPlugin: JavaPlugin() {
 
         worldguard = WorldGuardPlugin.inst()
 
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mb.")
-
         sidebar = BookMakerSidebar().returnSidebar(this)
         data = BookMakerData().returnData(this)
+
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mb on")
     }
 
     override fun onDisable() {
