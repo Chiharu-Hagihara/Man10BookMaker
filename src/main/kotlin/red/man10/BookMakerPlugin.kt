@@ -67,14 +67,12 @@ class BookMakerPlugin: JavaPlugin() {
 
             execute {
 
-                if (sender !is Player) {
-                    sender.sendMessage("${prefix}${ChatColor.RED}コマンドはプレイヤー以外から実行できません。")
-                    return@execute
-                }
-
-                val player = sender as Player
-
                 if (args.isNullOrEmpty()) {
+
+                    if (sender !is Player) {
+                        sender.sendMessage("${prefix}${ChatColor.RED}コマンドはプレイヤー以外から実行できません。")
+                        return@execute
+                    }
 
                     if (!sender.hasPermission("mp.play")) {
                         sender.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
@@ -86,10 +84,49 @@ class BookMakerPlugin: JavaPlugin() {
                         return@execute
                     }
 
-                    gui.openTopMenu(player)
+                    gui.openTopMenu(sender as Player)
 
                     return@execute
                 }
+
+                if (args[0] == "on") {
+
+                    if (!sender.hasPermission("mb.op")) {
+                        sender.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                        return@execute
+                    }
+
+                    configManager.loadConfig(sender)
+                    configManager.loadSpawn(sender)
+
+                    isLocked = false
+
+                    sender.sendMessage("${prefix}ONにしました。")
+
+                    return@execute
+
+                }
+
+                if (args[0] == "off") {
+
+                    if (!sender.hasPermission("mb.op")) {
+                        sender.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                        return@execute
+                    }
+
+                    isLocked = true
+                    sender.sendMessage("${prefix}OFFにしました。")
+
+                    return@execute
+
+                }
+
+                if (sender !is Player) {
+                    sender.sendMessage("${prefix}${ChatColor.RED}コマンドはプレイヤー以外から実行できません。")
+                    return@execute
+                }
+
+                val player = sender as Player
 
                 when (args[0]) {
 
@@ -134,6 +171,11 @@ class BookMakerPlugin: JavaPlugin() {
                     }
 
                     "open" -> {
+
+                        if (!player.hasPermission("mb.play")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
+                        }
 
                         if (isLocked) {
                             player.sendMessage("${prefix}${ChatColor.RED}ブックメーカーは現在OFFになっています。")
@@ -213,6 +255,11 @@ class BookMakerPlugin: JavaPlugin() {
 
                     "push" -> {
 
+                        if (!player.hasPermission("mb.op")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
+                        }
+
                         if (args.size != 2) {
                             player.sendMessage("${prefix}${ChatColor.RED}引数が間違っています。")
                             return@execute
@@ -223,6 +270,12 @@ class BookMakerPlugin: JavaPlugin() {
                     }
 
                     "end" -> {
+
+                        if (!player.hasPermission("mb.op")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
+                        }
+
                         if (args.size != 3) {
                             player.sendMessage("${prefix}${ChatColor.RED}引数が間違っています。")
                             return@execute
@@ -232,9 +285,16 @@ class BookMakerPlugin: JavaPlugin() {
                             player.sendMessage("${prefix}${ChatColor.RED}指定されたゲームが存在しません。")
                             return@execute
                         }
+
                     }
 
                     "forcestop" -> {
+
+                        if (!player.hasPermission("mb.op")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
+                        }
+
                         if (!gameManager.UUIDMap.keys.contains(gameManager.runningGames[args[1]]!!.players.keys.toList()[0])) {
                             player.sendMessage("${prefix}${ChatColor.RED}プレイヤーが存在しません。")
                             return@execute
@@ -255,6 +315,11 @@ class BookMakerPlugin: JavaPlugin() {
 
                     "setfighterspawn" -> {
 
+                        if (!player.hasPermission("mb.op")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
+                        }
+
                         if (args.size != 2) {
                             player.sendMessage("${prefix}${ChatColor.RED}引数が間違っています。")
                             return@execute
@@ -270,6 +335,11 @@ class BookMakerPlugin: JavaPlugin() {
 
                     "setviewerspawn" -> {
 
+                        if (!player.hasPermission("mb.op")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
+                        }
+
                         if (args.size != 2) {
                             player.sendMessage("${prefix}${ChatColor.RED}引数が間違っています。")
                             return@execute
@@ -283,24 +353,12 @@ class BookMakerPlugin: JavaPlugin() {
 
                     }
 
-                    "off" -> {
-
-                        isLocked = true
-                        player.sendMessage("${prefix}OFFにしました。")
-
-                        return@execute
-
-                    }
-                    "on" -> {
-
-                        isLocked = false
-                        player.sendMessage("${prefix}ONにしました。")
-
-                        return@execute
-
-                    }
-
                     "ask" -> {
+
+                        if (!player.hasPermission("mb.op")) {
+                            player.sendMessage("${prefix}${ChatColor.RED}権限がありません。")
+                            return@execute
+                        }
 
                         if (args.size != 5) {
                             player.sendMessage("${prefix}${ChatColor.RED}引数が間違っています。")
