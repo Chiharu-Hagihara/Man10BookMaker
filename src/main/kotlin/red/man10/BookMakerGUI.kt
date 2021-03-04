@@ -6,10 +6,7 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.meta.ItemMeta
-import java.nio.file.Files.setOwner
 import org.bukkit.inventory.meta.SkullMeta
-import java.nio.file.Files.list
 import java.util.*
 
 
@@ -52,16 +49,16 @@ class BookMakerGUI {
         var nolores: List<String> = ArrayList()
 
         for (place in redGlassPlaces) {
-            createItem(place, topMenu, Material.STAINED_GLASS_PANE, 14, 1, "§c§l参加登録受付中§f§lのゲーム", nolores)
+            createItem(place, topMenu, Material.RED_STAINED_GLASS_PANE, 1, "§c§l参加登録受付中§f§lのゲーム", nolores)
         }
         for (place in blueGlassPlaces) {
-            createItem(place, topMenu, Material.STAINED_GLASS_PANE, 11, 1, "§9§lベット受付中§f§lのゲーム", nolores)
+            createItem(place, topMenu, Material.BLUE_STAINED_GLASS_PANE, 1, "§9§lベット受付中§f§lのゲーム", nolores)
         }
         for (place in yellowGlassPlaces) {
-            createItem(place, topMenu, Material.STAINED_GLASS_PANE, 4, 1, "§e§l試合中§f§lのゲーム", nolores)
+            createItem(place, topMenu, Material.WHITE_STAINED_GLASS_PANE, 1, "§e§l試合中§f§lのゲーム", nolores)
         }
         for (place in dividerPlaces) {
-            createItem(place, topMenu, Material.IRON_FENCE, 0, 1, " ", nolores)
+            createItem(place, topMenu, Material.IRON_BARS, 1, " ", nolores)
         }
 
 
@@ -79,7 +76,7 @@ class BookMakerGUI {
                             "§8id: "+ runningGame.key
                     )
                     if (joinPhase != joinPhasePlaces.size) {
-                        createItem(joinPhasePlaces[joinPhase], topMenu, runningGame.value.item, 0, 1, "§6§l§n" + runningGame.value.gameName, lore)
+                        createItem(joinPhasePlaces[joinPhase], topMenu, runningGame.value.item, 1, "§6§l§n" + runningGame.value.gameName, lore)
                         joinPhase++
                     }
                 }
@@ -99,7 +96,7 @@ class BookMakerGUI {
                         )
                     }
                     if (betPhase != betPhasePlaces.size) {
-                        createItem(betPhasePlaces[betPhase], topMenu, runningGame.value.item, 0, 1, "§6§l§n" + runningGame.value.gameName, lore)
+                        createItem(betPhasePlaces[betPhase], topMenu, runningGame.value.item, 1, "§6§l§n" + runningGame.value.gameName, lore)
                         betPhase++
                     }
                 }
@@ -110,7 +107,7 @@ class BookMakerGUI {
                     }
                     lore.add("§8id: "+ runningGame.key)
                     if (fightPhase != fightPhasePlaces.size) {
-                        createItem(fightPhasePlaces[fightPhase], topMenu, runningGame.value.item, 0, 1, "§6§l§n" + runningGame.value.gameName, lore)
+                        createItem(fightPhasePlaces[fightPhase], topMenu, runningGame.value.item, 1, "§6§l§n" + runningGame.value.gameName, lore)
                         fightPhase++
                     }
                 }
@@ -152,7 +149,7 @@ class BookMakerGUI {
                                     "§eクリックでベット!",
                                     "§8id: " + (players.toMutableList()[i]),
                                     "§8game: " + gameId)
-                            createItem(place, playerSelectMenu, Material.SIGN, 0.toShort(), 1, "§c§l" + (i + 1).toString() + ": §f§l" + selectionText, dataLore)
+                            createItem(place, playerSelectMenu, Material.SIGN, 1, "§c§l" + (i + 1).toString() + ": §f§l" + selectionText, dataLore)
                             i++
                         }
                         p.openInventory(playerSelectMenu)
@@ -179,7 +176,7 @@ class BookMakerGUI {
 
                 var betMenu = Bukkit.getServer().createInventory(null, 54, "§0§l[§7§lm§8§lBookMaker§0§l] §r§lベット金額を入力")
                 for (i in 9..53) {
-                    createItem(i, betMenu, Material.STAINED_GLASS_PANE, 15, 1, " ", listOf())
+                    createItem(i, betMenu, Material.WHITE_STAINED_GLASS_PANE, 1, " ", listOf())
                 }
                 for (i in 0..9) {
                     val numberItemStack = ItemStack(Material.DIAMOND_HOE, 1, numberDurabilities[i]!!.toShort())
@@ -200,9 +197,9 @@ class BookMakerGUI {
                     numberItemStack.itemMeta = numberItemMeta
                     betMenu.setItem(textPlaces[i], numberItemStack)
                 }
-                createItem(48, betMenu, Material.TNT, 0, 1, "§4§lリセット", listOf())
-                createItem(41, betMenu, Material.EMERALD_BLOCK, 0, 1, "§a§l決定", listOf("§8id: " + gameId, "§8p: " + bettedUUID.toString()))
-                createItem(43, betMenu, Material.REDSTONE_BLOCK, 0, 1, "§4§lキャンセル", listOf())
+                createItem(48, betMenu, Material.TNT, 1, "§4§lリセット", listOf())
+                createItem(41, betMenu, Material.EMERALD_BLOCK, 1, "§a§l決定", listOf("§8id: " + gameId, "§8p: " + bettedUUID.toString()))
+                createItem(43, betMenu, Material.REDSTONE_BLOCK, 1, "§4§lキャンセル", listOf())
 
                 val man = ItemStack(Material.DIAMOND_HOE, 1, 555.toShort())
                 val manMeta = man.itemMeta
@@ -239,9 +236,9 @@ class BookMakerGUI {
         }
     }
 
-    fun createItem(place: Int?, gui: Inventory, material: Material, itemtype: Short?, amount: Int?, itemName: String, loreList: List<String>) {
-        val CIitemStack = ItemStack(material, amount!!, itemtype!!)
-        val CIitemMeta = CIitemStack.itemMeta
+    fun createItem(place: Int?, gui: Inventory, material: Material, amount: Int?, itemName: String, loreList: List<String>) {
+        var CIitemStack = ItemStack(material)
+        var CIitemMeta = CIitemStack.itemMeta
         CIitemMeta.displayName = itemName
         CIitemMeta.lore = loreList
         CIitemStack.itemMeta = CIitemMeta
@@ -249,7 +246,7 @@ class BookMakerGUI {
     }
 
     fun createSkull(username: String, itemName: String, gui: Inventory, place: Int, lore: List<String>) {
-        val skull = ItemStack(Material.SKULL_ITEM, 1, 3.toShort())
+        val skull = ItemStack(Material.PLAYER_HEAD, 1, 3.toShort())
         val meta = skull.itemMeta as SkullMeta
         meta.displayName = itemName
         meta.owner = username
